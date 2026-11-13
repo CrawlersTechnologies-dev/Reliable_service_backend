@@ -23,14 +23,14 @@ r.get(
     const c = await byToken(req.params.token);
     const [bank, execs] = await Promise.all([
       Bank.findById(c.bank),
-      User.find({ _id: { $in: c.legs.map((l) => l.executive) } }, { name: 1 }),
+      User.find({ _id: { $in: c.legs.map((l) => l.executive).filter(Boolean) } }, { name: 1 }),
     ]);
     const nameOf = Object.fromEntries(execs.map((e) => [String(e._id), e.name]));
     res.json({
       caseNo: c.caseNo,
       customerName: c.customerName,
       bankName: bank?.name,
-      executives: c.legs.map((l) => ({ type: l.type, name: nameOf[String(l.executive)] })),
+      executives: c.legs.filter((l) => l.executive).map((l) => ({ type: l.type, name: nameOf[String(l.executive)] })),
       alreadySubmitted: !!c.feedback?.submittedAt,
       visitStarted: c.legs.some((l) => l.status !== 'ASSIGNED'),
     });

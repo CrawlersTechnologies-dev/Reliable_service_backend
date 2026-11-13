@@ -6,6 +6,7 @@ import { LoginSession } from '../models/LoginSession.js';
 import { requireAuth, signToken } from '../middleware/auth.js';
 import { ApiError, ah, badRequest } from '../middleware/errors.js';
 import { userOut } from '../utils/serialize.js';
+import { AGENCY } from '../config/verification.js';
 
 const r = Router();
 
@@ -58,6 +59,20 @@ r.post(
 // GET /api/auth/me
 r.get('/me', requireAuth, (req, res) => res.json({ user: userOut(req.user) }));
 
+// GET /api/auth/agency — agency manager details printed on the executive's digital ID card.
+// The manager's number comes from AGENCY_MANAGER_PHONE in .env (blank until the client gives it).
+r.get('/agency', requireAuth, (req, res) =>
+  res.json({
+    agency: {
+      name: AGENCY.name,
+      address: AGENCY.address,
+      managerName: AGENCY.reviewer,
+      managerTitle: AGENCY.reviewerTitle,
+      managerPhone: (process.env.AGENCY_MANAGER_PHONE || '').trim(),
+    },
+  }),
+);
+
 // POST /api/auth/logout — closes the executive's sampling-login session
 r.post(
   '/logout',
@@ -68,11 +83,12 @@ r.post(
   }),
 );
 
-// POST /api/auth/change-password
+// POST /api/auth/change-password   (admin / OL only — field executives' passwords are set by the admin)
 r.post(
   '/change-password',
   requireAuth,
   ah(async (req, res) => {
+    if (req.user.role === 'EXECUTIVE') throw new ApiError(403, 'Your password is managed by the admin. Contact the office to change it.');
     const { currentPassword, newPassword } = z
       .object({ currentPassword: z.string().min(1), newPassword: z.string().min(8, 'New password must be at least 8 characters') })
       .parse(req.body);

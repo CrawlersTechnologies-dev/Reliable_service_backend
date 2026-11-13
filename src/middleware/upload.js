@@ -12,22 +12,55 @@ const ALLOWED = {
   'application/pdf': '.pdf',
 };
 
+// Chat attachments: images, PDF, Excel / CSV, Word.
+export const CHAT_TYPES = {
+  ...ALLOWED,
+  'image/gif': '.gif',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'text/csv': '.csv',
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+};
+// Some browsers send Excel / CSV as octet-stream — fall back to the file extension.
+const EXT_TYPES = Object.fromEntries(Object.entries(CHAT_TYPES).map(([t, e]) => [e, t]));
+EXT_TYPES['.jpeg'] = 'image/jpeg';
+export function chatMime(file) {
+  if (CHAT_TYPES[file.mimetype]) return file.mimetype;
+  return EXT_TYPES[path.extname(file.originalname || '').toLowerCase()] || null;
+}
+
 // Files go to uploads/<folder>/<random>.<ext>. Random names keep URLs unguessable.
-function storageFor(folder) {
+function storageFor(folder, types = ALLOWED) {
   return multer.diskStorage({
     destination: (req, file, cb) => {
       const dir = path.join(env.uploadDir, folder);
       fs.mkdirSync(dir, { recursive: true });
       cb(null, dir);
     },
-    filename: (req, file, cb) => cb(null, crypto.randomBytes(16).toString('hex') + ALLOWED[file.mimetype]),
+    filename: (req, file, cb) => {
+      const type = types === ALLOWED ? file.mimetype : chatMime(file);
+      cb(null, crypto.randomBytes(16).toString('hex') + types[type]);
+    },
   });
 }
 
-export function uploader(folder, { imagesOnly = false } = {}) {
+// Chat uploader: up to 5 files of the CHAT_TYPES kinds.
+export function chatUploader({ maxBytes = env.maxUploadBytes } = {}) {
+  return multer({
+    storage: storageFor('chat', CHAT_TYPES),
+    limits: { fileSize: maxBytes, files: 5 },
+    fileFilter: (req, file, cb) => {
+      const ok = !!chatMime(file);
+      cb(ok ? null : badRequest(`${file.originalname}: only images, PDF, Excel / CSV or Word files can be shared.`), ok);
+    },
+  });
+}
+
+export function uploader(folder, { imagesOnly = false, maxBytes = env.maxUploadBytes } = {}) {
   return multer({
     storage: storageFor(folder),
-    limits: { fileSize: env.maxUploadBytes, files: 20 },
+    limits: { fileSize: maxBytes, files: 20 },
     fileFilter: (req, file, cb) => {
       const ok = ALLOWED[file.mimetype] && (!imagesOnly || file.mimetype.startsWith('image/'));
       cb(ok ? null : badRequest(`${file.originalname}: only ${imagesOnly ? 'JPG / PNG / WEBP images' : 'images or PDF'} are allowed.`), !!ok);

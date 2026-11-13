@@ -64,3 +64,19 @@ test('demo findings for every type pass the same validation the app submit uses'
     assert.deepEqual(missing, [], `${key}: ${missing.join(', ')}`);
   }
 });
+
+test('manual entry (partial) allows blanks but still rejects wrong values', async () => {
+  const t = VERIFICATION_TYPES.BANK_STATEMENT;
+  const ok = cleanFindings(t, { statementBank: 'Canara Bank', averageBalance: '84000' }, { partial: true });
+  assert.deepEqual(ok.missing, []);
+  assert.equal(ok.findings.averageBalance, 84000);
+  const bad = cleanFindings(t, { statementStatus: 'Maybe' }, { partial: true });
+  assert.ok(bad.missing[0].startsWith('Statement'));
+});
+
+test('coordinates come from a pasted Google Maps link', async () => {
+  const { coordsFromLink } = await import('../src/utils/caseState.js');
+  assert.deepEqual(coordsFromLink('https://www.google.com/maps/search/?api=1&query=14.62108,76.70148'), { lat: '14.62108', lng: '76.70148' });
+  assert.deepEqual(coordsFromLink('https://www.google.com/maps/place/X/@15.3647,75.124,17z'), { lat: '15.3647', lng: '75.124' });
+  assert.equal(coordsFromLink('https://maps.app.goo.gl/abc'), null);
+});

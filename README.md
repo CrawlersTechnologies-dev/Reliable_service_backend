@@ -79,38 +79,65 @@ POST   /api/auth/change-password  { currentPassword, newPassword }
 # panel (admin + OL)
 GET    /api/banks                 POST /api/banks (admin)          PATCH /api/banks/:id (admin)
 GET    /api/users?role=OL|EXECUTIVE                                 (OL: EXECUTIVE only)
-GET    /api/users/next-id?role=   POST /api/users (admin) → { user, tempPassword }
+GET    /api/users/next-id?role=   POST /api/users (admin) → { user, tempPassword }   (dob + pincode required; executives also take companyName, reportingManagerId = an OL)
+GET    /api/users/birthdays?days=7                                  birthdays today / next N days, all roles
 PATCH  /api/users/:id (admin)     POST /api/users/:id/reset-password (admin) → { tempPassword }
 GET    /api/cases?tab=all|in-tat|out-of-tat|qa|closed&bankId=&type=&executiveId=&tatType=&outcome=&from=&to=&q=
 GET    /api/cases/:id
 POST   /api/cases                 (date, case no., deadline, feedback token set by server)
 POST   /api/cases/:id/legs/:legId/attachments   multipart "files" (document verification)
-PATCH  /api/cases/:id/legs/:legId/assign        { executiveId }
+PATCH  /api/cases/:id/legs/:legId/assign        { executiveId }   (keeps transfer history for admin / OL)
+PATCH  /api/cases/:id/tat-reason                { text }          why the case crossed its TAT
+POST   /api/cases/:id/legs/:legId/manual        { findings, remarks }  Admin / OL fill details & mark completed
+PATCH  /api/cases/:id/holidays                 { holidays: [{ date, note }] }  each holiday adds 24 h to the TAT
+POST   /api/cases/:id/legs/:legId/rework        { reason }   send a submitted visit back to the executive (Re-work tab)
+PATCH  /api/cases/:id/legs/:legId/details       { findings, nonVisitReason }   Admin / OL correct submitted details
 POST   /api/cases/:id/outcome                   { outcome, qaRemarks, qaChecks }
 POST   /api/cases/:id/legs/:legId/simulate      DEMO ONLY (ENABLE_DEMO_TOOLS=true, never in production)
-GET    /api/sampling-logins?executiveId=&from=&to=
+GET    /api/sampling-logins?executiveId=&from=&to=          executive app login sessions
+GET    /api/sampling?from=&to=&samplerId=&bankId=           daily bank-branch sampling (default last 31 days)
+POST   /api/sampling              multipart: samplerId, bankId, branch, totalFiles, totalScreened, totalSampled,
+                                  totalQuery, remarks?, sheet (JPG/PNG ≤ 5 MB, required). Visit date = today (server).
+                                  Rules: screened ≤ files, sampled ≤ screened, query ≤ files; one entry per
+                                  sampler + bank + branch + day (409 if repeated). Returns screeningRate / samplingRate.
+DELETE /api/sampling/:id (admin)
+GET    /api/attendance/today      POST /api/attendance/check-in (OL)      POST /api/attendance/check-out (OL)
+GET    /api/attendance?from=&to=&userId=     admin: all OLs · OL: own
+GET    /api/chat?after=ISO        POST /api/chat { text } or multipart text + files[] (≤5: image/PDF/Excel/CSV/Word)   DELETE /api/chat/:id      Discussion – Core (Admin + OL)
+GET    /api/cases/retention?days=7   (admin) closed cases due for automatic deletion + deletion log. Closed cases are deleted CASE_RETENTION_DAYS (default 90) after closing, with their files.
 
 # public (no login)
 GET    /api/public/feedback/:token
 POST   /api/public/feedback/:token   { rating, noMoney, noPhotos, noLoanPush, professional, comments?, respondentName? }
 
 # executive app
-GET    /api/executive/legs?scope=open|done      overdue first, with TAT state
+GET    /api/executive/legs?scope=open|rework|done   overdue first, with TAT state
 POST   /api/executive/legs/:legId/start         { lat, lng }
 POST   /api/executive/legs/:legId/submit        multipart: findings (JSON), lat, lng,
                                                 photo0…photo5 (0–3 required), photoN_lat / photoN_lng
+                                                result=TRACED (default) | UNTRACEABLE | REFUSED — not traced: reason (20+ chars) + photo0 only
+POST   /api/executive/legs/:legId/attempt       { reason, lat, lng }  customer asked to visit later — visit stays open
+GET    /api/executive/banks                     active banks { id, name, code } for the sampling form
+GET    /api/executive/sampling                  my daily sampling entries, last 30 days
+POST   /api/executive/sampling                  same multipart as /api/sampling, sampler = me
 ```
 
 Errors always come back as `{ "error": "message" }` with a 4xx / 5xx status.
 
 ## 5. How the main rules work
 
-- **Case number** `RS-YYMM-0001`, counted per month (`counters` collection, atomic).
+- **Case number** `RS-YYMMDD-00001` (e.g. RS-261023-00001): IST date of creation, number restarts every day (`counters` collection, atomic). Older cases keep their old numbers.
 - **TAT**: `deadlineAt = createdAt + 8h (Local) / 24h (OGL)`. The clock stops at `fieldCompletedAt`
   (last executive submission). Tabs use these two fields, so filtering is done in MongoDB.
 - **Case status** is derived from its locations: Assigned → In field → QA pending → Closed
   (`src/utils/caseState.js`, unit-tested).
-- **Combined cases**: one case, several `legs`, each with its own address, map, route, km and executive.
+- **Combined cases**: one case, several `legs`, each with its own address, PIN code, map, route, km and executive.
+- **Bank statement** (`BANK_STATEMENT`) is an internal type: no executive, no visit. Admin / OL use
+  `…/manual` to enter the details, then set the final status. `…/manual` also works for any other
+  verification handled in the office.
+- **Transfers**: reassigning keeps `legs[].transfers` (from / to / by / at) for admin / OL only. The executive
+  app and the bank report show only the current executive.
+- **Lat / long** are read from the pasted Google Maps link; there are no separate fields.
 - **Questionnaire** fields and dropdowns come from `src/config/verification.js` (copied from the panel —
   keep both files the same). Submitted answers are checked against it: unknown keys are dropped,
   required fields and dropdown values are enforced, conditional fields (e.g. rent amount) respected.

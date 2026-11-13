@@ -52,7 +52,8 @@ export function tabFilter(tab, now = new Date()) {
 
 // Keep only known questionnaire keys for the verification type, and
 // report required fields that are missing (respecting showIf conditions).
-export function cleanFindings(typeDef, input = {}) {
+// partial = true (manual entry by Admin / OL): blanks are allowed, wrong values still rejected.
+export function cleanFindings(typeDef, input = {}, { partial = false } = {}) {
   const out = {};
   const missing = [];
   for (const f of typeDef.fields) {
@@ -60,7 +61,7 @@ export function cleanFindings(typeDef, input = {}) {
     const visible = !f.showIf || f.showIf({ ...input });
     if (!visible) continue;
     if (raw === undefined || raw === null || raw === '') {
-      missing.push(f.label);
+      if (!partial) missing.push(f.label);
       continue;
     }
     if (f.type === 'number') {
@@ -81,4 +82,10 @@ export function cleanFindings(typeDef, input = {}) {
     }
   }
   return { findings: out, missing };
+}
+
+// Pull coordinates out of a Google Maps link (…query=lat,lng or …/@lat,lng,zoom).
+export function coordsFromLink(link = '') {
+  const m = link.match(/query=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/) || link.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+  return m ? { lat: m[1], lng: m[2] } : null;
 }

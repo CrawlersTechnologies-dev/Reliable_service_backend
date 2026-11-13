@@ -12,8 +12,11 @@ import bankRoutes from './routes/banks.js';
 import userRoutes from './routes/users.js';
 import caseRoutes from './routes/cases.js';
 import loginRoutes from './routes/logins.js';
+import samplingRoutes from './routes/sampling.js';
 import executiveRoutes from './routes/executive.js';
 import feedbackRoutes from './routes/feedback.js';
+import attendanceRoutes from './routes/attendance.js';
+import chatRoutes from './routes/chat.js';
 
 export function createApp() {
   const app = express();
@@ -47,7 +50,10 @@ export function createApp() {
   app.use('/api/banks', panel, bankRoutes);
   app.use('/api/users', panel, userRoutes);
   app.use('/api/cases', panel, caseRoutes);
-  app.use('/api/sampling-logins', panel, loginRoutes);
+  app.use('/api/sampling-logins', panel, loginRoutes); // executive app sessions
+  app.use('/api/sampling', panel, samplingRoutes); // daily bank-branch sampling entries
+  app.use('/api/attendance', panel, attendanceRoutes); // OL check-in / check-out
+  app.use('/api/chat', panel, chatRoutes); // Discussion – Core chat
 
   // Field executive mobile app
   app.use('/api/executive', requireAuth, requireRole('EXECUTIVE'), executiveRoutes);

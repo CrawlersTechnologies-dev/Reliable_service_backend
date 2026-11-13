@@ -7,13 +7,17 @@ import { bankOut } from '../utils/serialize.js';
 
 const r = Router();
 
+const manager = z.object({
+  name: z.string().trim().min(2, 'Manager name is required').max(80),
+  designation: z.string().trim().max(60).optional().default(''),
+  mobile: z.union([z.string().trim().regex(/^\d{10}$/, 'must be a 10-digit number'), z.literal('')]).optional().default(''),
+  email: z.union([z.string().trim().email(), z.literal('')]).optional().default(''),
+});
+
 const bankBody = z.object({
   name: z.string().trim().min(2),
   code: z.string().trim().min(2).max(8),
-  contactPerson: z.string().trim().max(80).optional().default(''),
-  contactNumber: z.string().trim().max(20).optional().default(''),
-  email: z.union([z.string().trim().email(), z.literal('')]).optional().default(''),
-  city: z.string().trim().max(60).optional().default(''),
+  managers: z.array(manager).max(20).optional().default([]),
   status: z.enum(['Active', 'Inactive']).optional().default('Active'),
 });
 
@@ -42,7 +46,9 @@ r.patch(
   requireRole('ADMIN'),
   ah(async (req, res) => {
     const data = bankBody.partial().parse(req.body);
-    const bank = await Bank.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
+    // once managers are saved as a list, clear the old single-contact fields
+    const update = data.managers ? { ...data, contactPerson: '', contactNumber: '', email: '' } : data;
+    const bank = await Bank.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!bank) throw notFound('Bank not found.');
     res.json({ bank: bankOut(bank) });
   }),
