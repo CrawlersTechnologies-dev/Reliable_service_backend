@@ -39,6 +39,7 @@ const legBody = z
     trigger: z.string().trim().max(1000).optional().default(''),
     executiveId: z.string().optional().default(''),
     documentName: z.string().trim().max(80).optional().default(''),
+    documentNo: z.string().trim().max(80).optional().default(''),
     contactPerson: z.string().trim().max(20).optional().default(''),
     // internal checks (Document check) can be filled in while creating the case
     findings: z.record(z.any()).optional().default({}),

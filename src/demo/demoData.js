@@ -41,8 +41,8 @@ export function sampleFindings(type) {
       verifiedWith: 'R. Joshi, Branch Manager', verificationMode: 'Branch visit', statementStatus: 'Genuine',
       averageBalance: 84000, chequeReturns: 0, salaryCredits: 'Yes, regular',
     },
-    DOCUMENT: { documentNo: 'RTC/HBL/2025/4410', verifiedWith: 'S. Patil, Village Accountant', details: 'RTC record checked at the Hubballi Taluk office. Survey number, extent and owner name match the bank copy; the official confirmed the document was issued by their office.', documentStatus: 'Genuine' },
-    INTERNAL_DOCUMENT: { documentNo: 'KH/DVG/2024/1187', details: 'Khata extract checked with the Taluk office register. Owner name, survey number and issue date match the office records; issued by the Revenue Inspector.', documentStatus: 'Genuine' },
+    DOCUMENT: { metPerson: 'S. Patil', metPersonDesignation: 'Village Accountant', documentStatus: 'Positive', feRemarks: 'RTC record checked at the Hubballi Taluk office. Survey number, extent and owner name match the bank copy.' },
+    INTERNAL_DOCUMENT: { documentNo: 'KH/DVG/2024/1187', documentStatus: 'Positive', details: 'Khata extract checked with the Taluk office register. Owner name, survey number and issue date match the office records; issued by the Revenue Inspector.' },
     RESI_CUM_OFFICE: {
       metPerson: 'Gopal', relationship: 'Self', constitution: 'Proprietor', resiCumOffice: 'Yes', entrance: 'From residence main door',
       areaType: 'Residential', yearsInBusiness: 22, businessSqft: 200, setup: 'Seen', natureOfBusiness: 'Saree sales',

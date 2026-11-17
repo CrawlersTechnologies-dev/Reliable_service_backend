@@ -76,6 +76,7 @@ const legSchema = new Schema(
     editedAt: { type: Date, default: null },
     // Document verification only
     documentName: { type: String, default: '' },
+    documentNo: { type: String, default: '' }, // entered by operations
     attachments: { type: [fileSchema], default: [] },
     contactPerson: { type: String, default: '' },
   },

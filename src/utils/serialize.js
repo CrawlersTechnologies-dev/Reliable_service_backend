@@ -89,6 +89,7 @@ export function legOut(l) {
     editedBy: actor(l.editedBy),
     editedAt: iso(l.editedAt),
     documentName: l.documentName,
+    documentNo: l.documentNo || '',
     attachments: (l.attachments || []).map((a) => ({ name: a.name, type: a.type, size: a.size, url: a.url })),
     contactPerson: l.contactPerson,
   };
