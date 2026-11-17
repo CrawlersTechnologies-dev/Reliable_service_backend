@@ -69,6 +69,8 @@ r.get('/agency', requireAuth, (req, res) =>
       managerName: AGENCY.reviewer,
       managerTitle: AGENCY.reviewerTitle,
       managerPhone: (process.env.AGENCY_MANAGER_PHONE || '').trim(),
+      // Google Static Maps key for the satellite map on GPS photos (restrict it to the app in Google Cloud)
+      mapsKey: req.user.role === 'EXECUTIVE' ? (process.env.GOOGLE_MAPS_KEY || '').trim() : '',
     },
   }),
 );

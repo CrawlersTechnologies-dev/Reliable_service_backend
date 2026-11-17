@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Reliable Services — backend for admin / OL panels and the executive app",
+  "description": "Reliable Services \u2014 backend for admin / OL panels and the executive app",
   "engines": {
     "node": ">=20"
   },
@@ -13,7 +13,8 @@
     "seed": "node scripts/seed.js",
     "seed:demo": "node scripts/seed.js --demo",
     "smoke": "node scripts/smoke.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "copy-db": "node scripts/copy-db.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
